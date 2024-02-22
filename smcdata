@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affiliate Link Generator</title>
+</head>
+<body>
+    <h1>Affiliate Link Generator</h1>
+    
+    <select id="productSelect" onchange="generateAffiliateLink()">
+        <option value="" disabled selected>Select a product</option>
+    </select>
+
+    <p id="affiliateLink"></p>
+    <img id="productImage" src="" alt="Product Image" style="max-width: 300px; max-height: 300px;">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script>
+        const SERVICE_ACCOUNT_KEY_PATH = '/Users/deasisrihandi/Downloads/websiteaffiliate-0b479e885e2b.json';
+        const SPREADSHEET_ID = '1lOXUFkc2_dVk75dSS3-KNPaP-FeRL84daIppvbKl3UA';
+
+        function initClient() {
+            gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+                scope: "https://www.googleapis.com/auth/spreadsheets.readonly",
+            }).then(function () {
+                getDataFromSheet();
+            });
+        }
+
+        function getDataFromSheet() {
+            gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'Data', // Change to your sheet name
+            }).then(function (response) {
+                const data = response.result.values;
+                populateProductDropdown(data);
+            });
+        }
+
+        function populateProductDropdown(data) {
+            const select = document.getElementById('productSelect');
+            data.shift(); // Remove header row
+            data.forEach(row => {
+                const option = document.createElement('option');
+                option.value = row[0]; // Assuming the product name is in the first column
+                option.text = row[0];
+                select.appendChild(option);
+            });
+        }
+
+        function generateAffiliateLink() {
+            const selectedProduct = document.getElementById('productSelect').value;
+            const { affiliateLink, imageLink } = getProductDetails(selectedProduct);
+            document.getElementById('affiliateLink').innerText = `Affiliate Link: ${affiliateLink}`;
+            document.getElementById('productImage').src = imageLink;
+        }
+
+        function getProductDetails(product) {
+            const data = gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: SPREADSHEET_ID,
+                range: 'Sheet1', // Change to your sheet name
+            }).then(response => {
+                const rows = response.result.values;
+                const productRow = rows.find(row => row[0] === product);
+                if (productRow) {
+                    return {
+                        affiliateLink: productRow[1], // Assuming the affiliate link is in the second column
+                        imageLink: productRow[2],    // Assuming the image link is in the third column
+                    };
+                } else {
+                    return { affiliateLink: 'Affiliate link not found', imageLink: '' };
+                }
+            });
+            return data;
+        }
+
+        gapi.load('client', initClient);
+    </script>
+</body>
+</html>
+
